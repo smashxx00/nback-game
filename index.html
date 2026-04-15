@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>N-Back 认知训练游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #2c3e50;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .screen {
+            display: none;
+            padding: 25px 20px;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            font-size: 13px;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+            font-size: 15px;
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .setting-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .option-btn {
+            flex: 1;
+            min-width: 40px;
+            padding: 10px 0;
+            border: 2px solid #e0e6ed;
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .option-btn.active {
+            border-color: #3498db;
+            background: #3498db;
+            color: #fff;
+        }
+
+        .range-input {
+            width: 100%;
+            margin: 8px 0;
+            height: 6px;
+        }
+
+        .range-value {
+            text-align: center;
+            font-weight: 600;
+            color: #3498db;
+            font-size: 14px;
+        }
+
+        .volume-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-row .range-input {
+            margin: 0;
+            flex: 1;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+            -webkit-appearance: none;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .btn-primary:active {
+            background: #2980b9;
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #34495e;
+        }
+
+        .btn-secondary:active {
+            background: #bdc3c7;
+            transform: scale(0.98);
+        }
+
+        .btn-test {
+            background: #27ae60;
+            color: #fff;
+            margin-top: 5px;
+        }
+
+        .btn-test:active {
+            background: #219653;
+            transform: scale(0.98);
+        }
+
+        .rule-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .rule-box h3 {
+            margin-bottom: 6px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        /* 训练界面 */
+        .countdown {
+            font-size: 70px;
+            font-weight: 700;
+            text-align: center;
+            color: #3498db;
+            margin: 30px 0;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            max-width: 300px;
+            margin: 25px auto;
+        }
+
+        .grid-cell {
+            aspect-ratio: 1/1;
+            border-radius: 10px;
+            background: #ecf0f1;
+            transition: all 0.2s;
+        }
+
+        .grid-cell.highlight {
+            background: #3498db;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.6);
+        }
+
+        .key-hint {
+            display: flex;
+            justify-content: space-around;
+            margin: 25px 0;
+            gap: 15px;
+            padding: 0 10px;
+        }
+
+        .key-card {
+            flex: 1;
+            padding: 15px 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.1s;
+            user-select: none;
+        }
+
+        .key-card:active {
+            transform: scale(0.96);
+            background: #e0e6ed;
+        }
+
+        .key-code {
+            font-size: 22px;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 4px;
+        }
+
+        .key-desc {
+            font-size: 12px;
+            color: #7f8c8d;
+            line-height: 1.3;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 5px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            width: 0%;
+            transition: width 0.3s linear;
+        }
+
+        .feedback {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            height: 25px;
+            margin: 8px 0;
+        }
+
+        .feedback.correct {
+            color: #27ae60;
+        }
+
+        .feedback.wrong {
+            color: #e74c3c;
+        }
+
+        /* 结果界面 */
+        .result-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .result-value {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .accuracy-high {
+            color: #27ae60;
+        }
+
+        .accuracy-medium {
+            color: #f39c12;
+        }
+
+        .accuracy-low {
+            color: #e74c3c;
+        }
+
+        .result-comment {
+            text-align: center;
+            font-size: 14px;
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 设置界面 -->
+        <div id="setting-screen" class="screen active">
+            <h1>N-Back 认知训练</h1>
+            <p class="subtitle">提升工作记忆与持续注意力</p>
+
+            <div class="setting-group">
+                <label class="setting-label">难度等级 (N值)</label>
+                <p class="setting-desc">新手推荐从N=1开始，正确率稳定90%再进阶</p>
+                <div class="setting-options" id="n-options">
+                    <button class="option-btn active" data-n="1">1</button>
+                    <button class="option-btn" data-n="2">2</button>
+                    <button class="option-btn" data-n="3">3</button>
+                    <button class="option-btn" data-n="4">4</button>
+                    <button class="option-btn" data-n="5">5</button>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">训练模式</label>
+                <div class="setting-options" id="mode-options">
+                    <button class="option-btn active" data-mode="single">单任务(视觉)</button>
+                    <button class="option-btn" data-mode="dual">双任务(视觉+听觉)</button>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">训练时长: <span id="duration-value">30</span> 秒</label>
+                <input type="range" min="20" max="120" step="10" value="30" class="range-input" id="duration-input">
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">刺激间隔: <span id="interval-value">3000</span> 毫秒</label>
+                <p class="setting-desc">刺激呈现500ms，间隔时间为空白等待时间</p>
+                <input type="range" min="1000" max="5000" step="500" value="3000" class="range-input" id="interval-input">
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">听觉音量: <span id="volume-value">80</span>%</label>
+                <div class="volume-row">
+                    <input type="range" min="0" max="100" step="10" value="80" class="range-input" id="volume-input">
+                </div>
+                <button class="btn btn-test" id="test-audio-btn">测试字母声音</button>
+                <p class="setting-desc" id="test-feedback" style="text-align: center; margin-top: 5px;"></p>
+            </div>
+
+            <div class="rule-box">
+                <h3>训练规则</h3>
+                <p>1. 当当前刺激与<strong>往前数第N个</strong>刺激一致时，按下对应按键</p>
+                <p>2. 单任务：视觉位置匹配按 <strong>F键</strong> / 点击左侧卡片</p>
+                <p>3. 双任务：视觉匹配按 <strong>F键</strong>，听觉字母匹配按 <strong>J键</strong></p>
+                <p>4. 前N个刺激为记忆期，无需按键</p>
+                <p>5. 全程专注，正确率优先于速度</p>
+            </div>
+
+            <button class="btn btn-primary" id="start-btn">开始训练</button>
+        </div>
+
+        <!-- 倒计时界面 -->
+        <div id="countdown-screen" class="screen">
+            <h1>准备开始</h1>
+            <div class="countdown" id="countdown-num">3</div>
+            <p class="subtitle">专注训练，保持呼吸平稳</p>
+        </div>
+
+        <!-- 训练界面 -->
+        <div id="training-screen" class="screen">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="feedback" id="feedback"></div>
+            <div class="grid-container" id="grid">
+                <div class="grid-cell" data-index="0"></div>
+                <div class="grid-cell" data-index="1"></div>
+                <div class="grid-cell" data-index="2"></div>
+                <div class="grid-cell" data-index="3"></div>
+                <div class="grid-cell" data-index="4"></div>
+                <div class="grid-cell" data-index="5"></div>
+                <div class="grid-cell" data-index="6"></div>
+                <div class="grid-cell" data-index="7"></div>
+                <div class="grid-cell" data-index="8"></div>
+            </div>
+            <div class="key-hint" id="key-hint">
+                <div class="key-card" id="key-f">
+                    <div class="key-code">F</div>
+                    <div class="key-desc">视觉位置匹配</div>
+                </div>
+                <div class="key-card" id="key-j">
+                    <div class="key-code">J</div>
+                    <div class="key-desc">听觉字母匹配</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果界面 -->
+        <div id="result-screen" class="screen">
+            <h1>训练完成</h1>
+            <div class="result-card">
+                <div class="result-row">
+                    <span class="result-label">难度等级</span>
+                    <span class="result-value" id="result-n">N=2</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">训练模式</span>
+                    <span class="result-value" id="result-mode">双任务</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">有效试次</span>
+                    <span class="result-value" id="result-total">0</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">正确判断</span>
+                    <span class="result-value" id="result-correct">0</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">正确率</span>
+                    <span class="result-value" id="result-accuracy">0%</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">命中数</span>
+                    <span class="result-value" id="result-hit">0</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">漏报数</span>
+                    <span class="result-value" id="result-miss">0</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">误报数</span>
+                    <span class="result-value" id="result-false">0</span>
+                </div>
+            </div>
+            <p class="result-comment" id="result-comment"></p>
+            <button class="btn btn-primary" id="restart-btn">重新训练</button>
+            <button class="btn btn-secondary" id="setting-btn">修改设置</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局配置
+        const config = {
+            n: 1,
+            mode: 'single',
+            duration: 30,
+            interval: 3000,
+            showTime: 500,
+            volume: 0.8,
+            letters: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'L']
+        };
+
+        // 音频缓存对象
+        const audioCache = {};
+        // 音频上下文（解决移动端音频挂起问题）
+        let audioContext = null;
+
+        // 训练状态
+        let state = {
+            visualSequence: [],
+            audioSequence: [],
+            currentIndex: 0,
+            totalTrials: 0,
+            correct: 0,
+            hit: 0,
+            miss: 0,
+            falseAlarm: 0,
+            visualPressed: false,
+            audioPressed: false,
+            timer: null,
+            isTraining: false
+        };
+
+        // DOM元素
+        const screens = {
+            setting: document.getElementById('setting-screen'),
+            countdown: document.getElementById('countdown-screen'),
+            training: document.getElementById('training-screen'),
+            result: document.getElementById('result-screen')
+        };
+
+        const elements = {
+            nOptions: document.querySelectorAll('#n-options .option-btn'),
+            modeOptions: document.querySelectorAll('#mode-options .option-btn'),
+            durationInput: document.getElementById('duration-input'),
+            durationValue: document.getElementById('duration-value'),
+            intervalInput: document.getElementById('interval-input'),
+            intervalValue: document.getElementById('interval-value'),
+            volumeInput: document.getElementById('volume-input'),
+            volumeValue: document.getElementById('volume-value'),
+            testAudioBtn: document.getElementById('test-audio-btn'),
+            testFeedback: document.getElementById('test-feedback'),
+            startBtn: document.getElementById('start-btn'),
+            countdownNum: document.getElementById('countdown-num'),
+            gridCells: document.querySelectorAll('.grid-cell'),
+            feedback: document.getElementById('feedback'),
+            progressFill: document.getElementById('progress-fill'),
+            keyF: document.getElementById('key-f'),
+            keyJ: document.getElementById('key-j'),
+            resultN: document.getElementById('result-n'),
+            resultMode: document.getElementById('result-mode'),
+            resultTotal: document.getElementById('result-total'),
+            resultCorrect: document.getElementById('result-correct'),
+            resultAccuracy: document.getElementById('result-accuracy'),
+            resultHit: document.getElementById('result-hit'),
+            resultMiss: document.getElementById('result-miss'),
+            resultFalse: document.getElementById('result-false'),
+            resultComment: document.getElementById('result-comment'),
+            restartBtn: document.getElementById('restart-btn'),
+            settingBtn: document.getElementById('setting-btn')
+        };
+
+        // 初始化音频上下文（破解浏览器自动播放限制）
+        function initAudioContext() {
+            if (!audioContext) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioContext = new AudioContext();
+            }
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        // 预加载音频（国内稳定有道源，解决之前的链接解析失败问题）
+        function preloadAudio() {
+            config.letters.forEach(letter => {
+                if (!audioCache[letter]) {
+                    // 国内稳定的有道词典美式发音源，无访问限制
+                    const audioUrl = `https://dict.youdao.com/dictvoice?audio=${letter.toLowerCase()}&type=2`;
+                    const audio = new Audio(audioUrl);
+                    audio.volume = config.volume;
+                    audio.preload = 'auto';
+                    audio.load();
+                    audioCache[letter] = audio;
+                }
+            });
+        }
+
+        // 播放字母音频（双保险兜底，在线源失败自动用语音合成）
+        function playLetterAudio(letter) {
+            initAudioContext();
+            if (audioCache[letter]) {
+                const audio = audioCache[letter];
+                audio.currentTime = 0;
+                audio.volume = config.volume;
+                audio.play().catch(err => {
+                    // 在线音频失败，自动切换浏览器语音合成兜底
+                    console.warn('在线音频加载失败，启用语音合成兜底', err);
+                    fallbackSpeak(letter);
+                });
+            } else {
+                fallbackSpeak(letter);
+            }
+        }
+
+        // 语音合成兜底方案（无网也能用，100%有声音）
+        function fallbackSpeak(letter) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(letter);
+                utterance.lang = 'en-US';
+                utterance.volume = config.volume;
+                utterance.rate = 1.2;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // 切换界面
+        function switchScreen(screenName) {
+            Object.values(screens).forEach(screen => screen.classList.remove('active'));
+            screens[screenName].classList.add('active');
+        }
+
+        // 初始化设置事件
+        function initSettingEvents() {
+            // N值选择
+            elements.nOptions.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.nOptions.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    config.n = parseInt(btn.dataset.n);
+                });
+            });
+
+            // 模式选择
+            elements.modeOptions.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.modeOptions.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    config.mode = btn.dataset.mode;
+                    elements.keyJ.style.display = config.mode === 'dual' ? 'block' : 'none';
+                });
+            });
+
+            // 时长滑块
+            elements.durationInput.addEventListener('input', (e) => {
+                config.duration = parseInt(e.target.value);
+                elements.durationValue.textContent = config.duration;
+            });
+
+            // 间隔滑块
+            elements.intervalInput.addEventListener('input', (e) => {
+                config.interval = parseInt(e.target.value);
+                elements.intervalValue.textContent = config.interval;
+            });
+
+            // 音量滑块
+            elements.volumeInput.addEventListener('input', (e) => {
+                const volume = parseInt(e.target.value);
+                config.volume = volume / 100;
+                elements.volumeValue.textContent = volume;
+                Object.values(audioCache).forEach(audio => {
+                    audio.volume = config.volume;
+                });
+            });
+
+            // 声音测试按钮
+            elements.testAudioBtn.addEventListener('click', testAudio);
+
+            // 开始按钮
+            elements.startBtn.addEventListener('click', () => {
+                initAudioContext();
+                preloadAudio();
+                startCountdown();
+            });
+        }
+
+        // 测试音频功能
+        function testAudio() {
+            initAudioContext();
+            preloadAudio();
+            const randomLetter = config.letters[Math.floor(Math.random() * config.letters.length)];
+            playLetterAudio(randomLetter);
+            elements.testFeedback.textContent = `已播放字母 ${randomLetter}，能听到即声音正常`;
+            setTimeout(() => elements.testFeedback.textContent = '', 3000);
+        }
+
+        // 倒计时
+        function startCountdown() {
+            switchScreen('countdown');
+            let count = 3;
+            elements.countdownNum.textContent = count;
+            const timer = setInterval(() => {
+                count--;
+                elements.countdownNum.textContent = count;
+                if (count === 0) {
+                    clearInterval(timer);
+                    startTraining();
+                }
+            }, 1000);
+        }
+
+        // 生成刺激序列
+        function generateSequence() {
+            const totalTime = config.duration * 1000;
+            const trialTime = config.showTime + config.interval;
+            state.totalTrials = Math.floor(totalTime / trialTime);
+            
+            state.visualSequence = [];
+            state.audioSequence = [];
+            
+            // 视觉序列（九宫格0-8）
+            for (let i = 0; i < state.totalTrials; i++) {
+                let num;
+                if (i >= config.n && Math.random() < 0.25) {
+                    num = state.visualSequence[i - config.n];
+                } else {
+                    num = Math.floor(Math.random() * 9);
+                }
+                state.visualSequence.push(num);
+            }
+
+            // 听觉序列（双任务模式）
+            if (config.mode === 'dual') {
+                for (let i = 0; i < state.totalTrials; i++) {
+                    let letter;
+                    if (i >= config.n && Math.random() < 0.25) {
+                        letter = state.audioSequence[i - config.n];
+                    } else {
+                        letter = config.letters[Math.floor(Math.random() * config.letters.length)];
+                    }
+                    state.audioSequence.push(letter);
+                }
+            }
+        }
+
+        // 高亮格子
+        function highlightCell(index) {
+            elements.gridCells.forEach(cell => cell.classList.remove('highlight'));
+            if (index !== undefined && index >= 0 && index < 9) {
+                elements.gridCells[index].classList.add('highlight');
+            }
+        }
+
+        // 反馈显示
+        function showFeedback(text, isCorrect) {
+            elements.feedback.textContent = text;
+            elements.feedback.className = 'feedback';
+            if (isCorrect !== undefined) {
+                elements.feedback.classList.add(isCorrect ? 'correct' : 'wrong');
+            }
+            setTimeout(() => {
+                elements.feedback.textContent = '';
+                elements.feedback.className = 'feedback';
+            }, 500);
+        }
+
+        // 处理按键响应
+        function handleKeyPress(key) {
+            const i = state.currentIndex;
+            if (i < config.n || !state.isTraining) return;
+
+            // 视觉匹配F键
+            if (key === 'F' && !state.visualPressed) {
+                state.visualPressed = true;
+                const isMatch = state.visualSequence[i] === state.visualSequence[i - config.n];
+                if (isMatch) {
+                    state.correct++;
+                    state.hit++;
+                    showFeedback('正确！', true);
+                } else {
+                    state.falseAlarm++;
+                    showFeedback('误报', false);
+                }
+            }
+
+            // 听觉匹配J键
+            if (key === 'J' && config.mode === 'dual' && !state.audioPressed) {
+                state.audioPressed = true;
+                const isMatch = state.audioSequence[i] === state.audioSequence[i - config.n];
+                if (isMatch) {
+                    state.correct++;
+                    state.hit++;
+                    showFeedback('正确！', true);
+                } else {
+                    state.falseAlarm++;
+                    showFeedback('误报', false);
+                }
+            }
+        }
+
+        // 运行单个试次
+        function runTrial() {
+            const i = state.currentIndex;
+            if (i >= state.totalTrials) {
+                endTraining();
+                return;
+            }
+
+            // 重置按键状态
+            state.visualPressed = false;
+            state.audioPressed = false;
+
+            // 同步呈现视觉+听觉刺激
+            highlightCell(state.visualSequence[i]);
+            if (config.mode === 'dual') {
+                playLetterAudio(state.audioSequence[i]);
+            }
+
+            // 500ms后关闭高亮
+            setTimeout(() => highlightCell(), config.showTime);
+
+            // 检查漏报并进入下一试次
+            setTimeout(() => {
+                if (i >= config.n) {
+                    const visualMatch = state.visualSequence[i] === state.visualSequence[i - config.n];
+                    const audioMatch = config.mode === 'dual' ? state.audioSequence[i] === state.audioSequence[i - config.n] : false;
+                    
+                    let missed = false;
+                    if (visualMatch && !state.visualPressed) {
+                        state.miss++;
+                        missed = true;
+                    }
+                    if (audioMatch && !state.audioPressed) {
+                        state.miss++;
+                        missed = true;
+                    }
+                    if (!visualMatch && !audioMatch && !state.visualPressed && !state.audioPressed) {
+                        state.correct++;
+                    }
+
+                    if (missed) showFeedback('漏报', false);
+                }
+
+                // 更新进度条
+                const progress = ((i + 1) / state.totalTrials) * 100;
+                elements.progressFill.style.width = `${progress}%`;
+
+                // 下一试次
+                state.currentIndex++;
+                state.timer = setTimeout(runTrial, config.interval - config.showTime);
+            }, config.interval);
+        }
+
+        // 开始训练
+        function startTraining() {
+            switchScreen('training');
+            // 重置状态
+            state = {
+                visualSequence: [],
+                audioSequence: [],
+                currentIndex: 0,
+                totalTrials: 0,
+                correct: 0,
+                hit: 0,
+                miss: 0,
+                falseAlarm: 0,
+                visualPressed: false,
+                audioPressed: false,
+                timer: null,
+                isTraining: true
+            };
+
+            // 生成序列
+            generateSequence();
+
+            // 绑定键盘事件
+            document.addEventListener('keydown', (e) => {
+                handleKeyPress(e.key.toUpperCase());
+            });
+
+            // 绑定手机触摸事件
+            elements.keyF.addEventListener('click', () => handleKeyPress('F'));
+            elements.keyJ.addEventListener('click', () => handleKeyPress('J'));
+
+            // 启动训练
+            runTrial();
+        }
+
+        // 结束训练
+        function endTraining() {
+            state.isTraining = false;
+            clearTimeout(state.timer);
+            // 停止所有音频
+            Object.values(audioCache).forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+            window.speechSynthesis?.cancel();
+            highlightCell();
+
+            // 计算结果
+            const validTrials = state.totalTrials - config.n;
+            const totalJudgements = validTrials * (config.mode === 'dual' ? 2 : 1);
+            const accuracy = totalJudgements > 0 ? Math.round((state.correct / totalJudgements) * 100) : 0;
+
+            // 填充结果
+            elements.resultN.textContent = `N=${config.n}`;
+            elements.resultMode.textContent = config.mode === 'single' ? '单任务(视觉)' : '双任务(视觉+听觉)';
+            elements.resultTotal.textContent = validTrials;
+            elements.resultCorrect.textContent = state.correct;
+            elements.resultAccuracy.textContent = `${accuracy}%`;
+            elements.resultHit.textContent = state.hit;
+            elements.resultMiss.textContent = state.miss;
+            elements.resultFalse.textContent = state.falseAlarm;
+
+            // 正确率样式与评语
+            elements.resultAccuracy.className = 'result-value';
+            if (accuracy >= 90) {
+                elements.resultAccuracy.classList.add('accuracy-high');
+                elements.resultComment.textContent = '太棒了！你的正确率非常优秀，可以尝试提升N值挑战更高难度。';
+            } else if (accuracy >= 80) {
+                elements.resultAccuracy.classList.add('accuracy-medium');
+                elements.resultComment.textContent = '做得不错！继续保持训练，稳定正确率在85%以上再进阶会有更好的效果。';
+            } else {
+                elements.resultAccuracy.classList.add('accuracy-low');
+                elements.resultComment.textContent = '继续加油！建议降低N值，先从简单的难度开始，专注提升正确率。';
+            }
+
+            switchScreen('result');
+        }
+
+        // 结果页面事件
+        function initResultEvents() {
+            elements.restartBtn.addEventListener('click', () => {
+                initAudioContext();
+                preloadAudio();
+                startCountdown();
+            });
+            elements.settingBtn.addEventListener('click', () => switchScreen('setting'));
+        }
+
+        // 页面加载完成初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            initSettingEvents();
+            initResultEvents();
+            preloadAudio();
+            // 默认隐藏J键（单任务模式）
+            elements.keyJ.style.display = 'none';
+            // 页面任意点击解锁音频
+            document.body.addEventListener('click', initAudioContext, { once: true });
+        });
+    </script>
+</body>
+</html>
