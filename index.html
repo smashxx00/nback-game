@@ -1,926 +1,746 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>N-Back 认知训练游戏</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Brain Training · 认知训练</title>
+<style>
+/* ═══════════ Design Tokens — 博客色系 ═══════════ */
+:root {
+  --bg: #f5f7fa;
+  --card: #fff;
+  --text: #1f2a36;
+  --muted: #6f7c8a;
+  --accent: #1f7a8c;
+  --accent-light: rgba(31,122,140,0.1);
+  --accent-grad: linear-gradient(135deg, #1f7a8c, #176b7e);
+  --warm: #ef8f5a;
+  --warm-light: rgba(239,143,90,0.1);
+  --gold: #f2c879;
+  --green: #27ae60;
+  --red: #e74c3c;
+  --border: #e8ecf0;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 2px 12px rgba(15,23,42,0.06);
+  --shadow-lg: 0 8px 32px rgba(15,23,42,0.1);
+  --ease: cubic-bezier(0.16,1,0.3,1);
+}
 
-        body {
-            background-color: #f5f7fa;
-            color: #2c3e50;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 15px;
-            width: 100%;
-            overflow-x: hidden;
-        }
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; padding: 20px 16px 40px;
+  -webkit-tap-highlight-color: transparent;
+}
 
-        .container {
-            width: 100%;
-            max-width: 500px;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
+/* ═══════════ Container ═══════════ */
+.app {
+  width: 100%; max-width: 520px;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
 
-        .screen {
-            display: none;
-            padding: 25px 20px;
-        }
+/* ═══════════ Header ═══════════ */
+.header {
+  padding: 28px 24px 0;
+  text-align: center;
+}
+.header-icon {
+  width: 56px; height: 56px; margin: 0 auto 12px;
+  border-radius: 16px;
+  background: var(--accent-grad);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #fff;
+  box-shadow: 0 8px 24px rgba(31,122,140,0.25);
+}
+.header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.02em; margin-bottom: 4px; }
+.header p { font-size: 13px; color: var(--muted); }
 
-        .screen.active {
-            display: block;
-        }
+/* ═══════════ Tab Nav ═══════════ */
+.tabs {
+  display: flex; gap: 6px; padding: 20px 20px 16px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.tab {
+  flex: 1 0 auto; min-width: fit-content;
+  padding: 10px 16px; border-radius: 999px;
+  border: 1.5px solid var(--border); background: #fff;
+  color: var(--muted); cursor: pointer;
+  font-size: 13px; font-weight: 600;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap; text-align: center;
+}
+.tab:hover { border-color: var(--accent); color: var(--accent); }
+.tab.active {
+  background: var(--accent-grad); color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(31,122,140,0.25);
+}
 
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            font-size: 24px;
-        }
+/* ═══════════ Screens ═══════════ */
+.screen { display: none; padding: 0 20px 20px; }
+.screen.active { display: block; animation: fadeIn 0.3s var(--ease); }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
-        .subtitle {
-            text-align: center;
-            color: #7f8c8d;
-            margin-bottom: 25px;
-            font-size: 13px;
-        }
+/* ═══════════ Settings ═══════════ */
+.settings-section { margin-bottom: 22px; }
+.settings-label { display: block; font-weight: 700; color: var(--text); margin-bottom: 6px; font-size: 14px; }
+.settings-desc { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+.option-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.option {
+  flex: 1; min-width: 44px; padding: 10px 0;
+  border: 2px solid var(--border); background: #fff;
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-weight: 600; font-size: 14px; color: var(--text);
+  transition: all 0.15s var(--ease); text-align: center;
+}
+.option:hover { border-color: var(--accent); }
+.option.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
 
-        .setting-group {
-            margin-bottom: 20px;
-        }
+.rule-box {
+  background: #f8fafb; padding: 14px 16px;
+  border-radius: var(--radius-sm); margin: 16px 0;
+  font-size: 12px; line-height: 1.6; color: var(--muted);
+  border-left: 3px solid var(--accent);
+}
+.rule-box h3 { color: var(--text); font-size: 13px; margin-bottom: 4px; }
 
-        .setting-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #34495e;
-            font-size: 15px;
-        }
+/* ═══════════ Buttons ═══════════ */
+.btn {
+  display: block; width: 100%; padding: 14px;
+  border: none; border-radius: 999px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: all 0.2s var(--ease);
+  font-family: inherit; letter-spacing: 0.02em;
+  margin-top: 10px;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent-grad); color: #fff; box-shadow: 0 4px 14px rgba(31,122,140,0.25); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-go {
+  background: var(--green); color: #fff;
+  box-shadow: 0 4px 14px rgba(39,174,96,0.25);
+}
+.btn-nogo {
+  background: var(--red); color: #fff;
+  box-shadow: 0 4px 14px rgba(231,76,60,0.25);
+}
 
-        .setting-desc {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
+/* ═══════════ Game Area ═══════════ */
+.game-area {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+  padding: 20px 0 10px;
+}
 
-        .setting-options {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+/* N-Back grid */
+.nb-grid {
+  display: grid; grid-template-columns:repeat(3,1fr);
+  gap: 12px; max-width: 270px; width: 100%;
+}
+.nb-cell {
+  aspect-ratio: 1; border-radius: var(--radius-sm);
+  background: #f0f3f5; transition: all 0.15s ease;
+}
+.nb-cell.active { background: var(--accent); box-shadow: 0 0 20px rgba(31,122,140,0.5); }
 
-        .option-btn {
-            flex: 1;
-            min-width: 40px;
-            padding: 10px 0;
-            border: 2px solid #e0e6ed;
-            background: #fff;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
+/* PVT stimulus */
+.pvt-stim {
+  width: 140px; height: 140px; border-radius: 24px;
+  background: #f0f3f5; transition: background 0.05s;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--muted);
+}
 
-        .option-btn.active {
-            border-color: #3498db;
-            background: #3498db;
-            color: #fff;
-        }
+/* Go/No-Go stimulus */
+.gng-stim {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: #f0f3f5; transition: all 0.15s ease;
+}
+.gng-stim.go { background: var(--green); box-shadow: 0 0 30px rgba(39,174,96,0.4); }
+.gng-stim.nogo { background: var(--red); box-shadow: 0 0 30px rgba(231,76,60,0.4); }
 
-        .range-input {
-            width: 100%;
-            margin: 8px 0;
-            height: 6px;
-        }
+/* Visual Span grid */
+.vs-grid { display: grid; gap: 6px; justify-content: center; }
+.vs-cell {
+  width: 42px; height: 42px; border-radius: 8px;
+  background: #f0f3f5; border: 2px solid transparent;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.vs-cell.show { background: var(--accent); border-color: var(--accent); }
+.vs-cell.picked { border-color: var(--warm); box-shadow: 0 0 0 2px var(--warm); }
 
-        .range-value {
-            text-align: center;
-            font-weight: 600;
-            color: #3498db;
-            font-size: 14px;
-        }
+/* Key/Action cards */
+.action-row {
+  display: flex; gap: 12px; width: 100%; max-width: 360px;
+}
+.action-card {
+  flex: 1; padding: 16px 10px;
+  background: #f8fafb; border-radius: var(--radius-sm);
+  text-align: center; cursor: pointer;
+  transition: all 0.1s ease; user-select: none;
+  border: 2px solid transparent;
+}
+.action-card:active { transform: scale(0.96); }
+.action-card.go-card { border-color: rgba(39,174,96,0.3); }
+.action-card.nogo-card { border-color: rgba(231,76,60,0.3); }
+.action-key { font-size: 22px; font-weight: 800; }
+.action-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-        .volume-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+/* ═══════════ Stats ═══════════ */
+.stats-row {
+  display: flex; gap: 12px; width: 100%;
+  justify-content: center; flex-wrap: wrap;
+}
+.stat-card {
+  text-align: center; min-width: 60px;
+  padding: 8px 12px; background: #f8fafb;
+  border-radius: var(--radius-sm);
+}
+.stat-val { font-size: 20px; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
-        .volume-row .range-input {
-            margin: 0;
-            flex: 1;
-        }
+/* ═══════════ Progress ═══════════ */
+.progress-bar {
+  width: 100%; height: 4px; background: #f0f3f5;
+  border-radius: 2px; overflow: hidden;
+}
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.3s linear; }
 
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 10px;
-            -webkit-appearance: none;
-        }
+/* ═══════════ Feedback ═══════════ */
+.feedback { font-size: 15px; font-weight: 600; height: 24px; }
+.feedback.correct { color: var(--green); }
+.feedback.wrong { color: var(--red); }
 
-        .btn-primary {
-            background: #3498db;
-            color: #fff;
-        }
+/* ═══════════ Results ═══════════ */
+.result-card {
+  background: #f8fafb; padding: 16px;
+  border-radius: var(--radius-sm); margin: 12px 0;
+}
+.result-row {
+  display: flex; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.result-row:last-child { border-bottom: none; }
+.result-row span:last-child { font-weight: 700; }
 
-        .btn-primary:active {
-            background: #2980b9;
-            transform: scale(0.98);
-        }
+/* ═══════════ Countdown ═══════════ */
+.countdown { font-size: 64px; font-weight: 800; color: var(--accent); text-align: center; margin: 20px 0; }
 
-        .btn-secondary {
-            background: #ecf0f1;
-            color: #34495e;
-        }
+/* ═══════════ History ═══════════ */
+.history { margin-top: 10px; }
+.history h3 { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+.history-card {
+  background: #f8fafb; padding: 10px 14px; border-radius: var(--radius-sm);
+  margin-bottom: 6px; font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.history-date { color: var(--muted); }
+.history-score { font-weight: 700; color: var(--accent); }
 
-        .btn-secondary:active {
-            background: #bdc3c7;
-            transform: scale(0.98);
-        }
-
-        .btn-test {
-            background: #27ae60;
-            color: #fff;
-            margin-top: 5px;
-        }
-
-        .btn-test:active {
-            background: #219653;
-            transform: scale(0.98);
-        }
-
-        .rule-box {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .rule-box h3 {
-            margin-bottom: 6px;
-            color: #2c3e50;
-            font-size: 14px;
-        }
-
-        /* 训练界面 */
-        .countdown {
-            font-size: 70px;
-            font-weight: 700;
-            text-align: center;
-            color: #3498db;
-            margin: 30px 0;
-        }
-
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            max-width: 300px;
-            margin: 25px auto;
-        }
-
-        .grid-cell {
-            aspect-ratio: 1/1;
-            border-radius: 10px;
-            background: #ecf0f1;
-            transition: all 0.2s;
-        }
-
-        .grid-cell.highlight {
-            background: #3498db;
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.6);
-        }
-
-        .key-hint {
-            display: flex;
-            justify-content: space-around;
-            margin: 25px 0;
-            gap: 15px;
-            padding: 0 10px;
-        }
-
-        .key-card {
-            flex: 1;
-            padding: 15px 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.1s;
-            user-select: none;
-        }
-
-        .key-card:active {
-            transform: scale(0.96);
-            background: #e0e6ed;
-        }
-
-        .key-code {
-            font-size: 22px;
-            font-weight: 700;
-            color: #3498db;
-            margin-bottom: 4px;
-        }
-
-        .key-desc {
-            font-size: 12px;
-            color: #7f8c8d;
-            line-height: 1.3;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 5px;
-            background: #ecf0f1;
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #3498db;
-            width: 0%;
-            transition: width 0.3s linear;
-        }
-
-        .feedback {
-            text-align: center;
-            font-size: 16px;
-            font-weight: 600;
-            height: 25px;
-            margin: 8px 0;
-        }
-
-        .feedback.correct {
-            color: #27ae60;
-        }
-
-        .feedback.wrong {
-            color: #e74c3c;
-        }
-
-        /* 结果界面 */
-        .result-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-        }
-
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #e0e6ed;
-        }
-
-        .result-row:last-child {
-            border-bottom: none;
-        }
-
-        .result-label {
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .result-value {
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .accuracy-high {
-            color: #27ae60;
-        }
-
-        .accuracy-medium {
-            color: #f39c12;
-        }
-
-        .accuracy-low {
-            color: #e74c3c;
-        }
-
-        .result-comment {
-            text-align: center;
-            font-size: 14px;
-            margin: 15px 0;
-            line-height: 1.5;
-        }
-    </style>
+@media (max-width: 480px) {
+  body { padding: 12px 8px 32px; }
+  .header { padding: 20px 16px 0; }
+  .screen { padding: 0 16px 16px; }
+  .tabs { padding: 16px 12px 12px; gap: 4px; }
+  .tab { padding: 8px 10px; font-size: 11px; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- 设置界面 -->
-        <div id="setting-screen" class="screen active">
-            <h1>N-Back 认知训练</h1>
-            <p class="subtitle">提升工作记忆与持续注意力</p>
 
-            <div class="setting-group">
-                <label class="setting-label">难度等级 (N值)</label>
-                <p class="setting-desc">新手推荐从N=1开始，正确率稳定90%再进阶</p>
-                <div class="setting-options" id="n-options">
-                    <button class="option-btn active" data-n="1">1</button>
-                    <button class="option-btn" data-n="2">2</button>
-                    <button class="option-btn" data-n="3">3</button>
-                    <button class="option-btn" data-n="4">4</button>
-                    <button class="option-btn" data-n="5">5</button>
-                </div>
-            </div>
+<div class="app" id="app"></div>
 
-            <div class="setting-group">
-                <label class="setting-label">训练模式</label>
-                <div class="setting-options" id="mode-options">
-                    <button class="option-btn active" data-mode="single">单任务(视觉)</button>
-                    <button class="option-btn" data-mode="dual">双任务(视觉+听觉)</button>
-                </div>
-            </div>
+<script>
+// ═══════════ App State ═══════════
+const GAMES = {
+  nback: { name: 'Dual N-Back', icon: '🔄', desc: '工作记忆训练' },
+  pvt:   { name: '反应冲刺', icon: '⚡', desc: '瞬时警觉训练' },
+  gng:   { name: '信号检测', icon: '🎯', desc: '持续性专注力训练' },
+  vs:    { name: '记忆匹配', icon: '🧩', desc: '视觉工作记忆训练' },
+};
+let currentGame = 'nback';
+let sessionActive = false;
+let history = JSON.parse(localStorage.getItem('brain-history') || '[]');
 
-            <div class="setting-group">
-                <label class="setting-label">训练时长: <span id="duration-value">30</span> 秒</label>
-                <input type="range" min="20" max="120" step="10" value="30" class="range-input" id="duration-input">
-            </div>
+const app = document.getElementById('app');
 
-            <div class="setting-group">
-                <label class="setting-label">刺激间隔: <span id="interval-value">3000</span> 毫秒</label>
-                <p class="setting-desc">刺激呈现500ms，间隔时间为空白等待时间</p>
-                <input type="range" min="1000" max="5000" step="500" value="3000" class="range-input" id="interval-input">
-            </div>
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  Object.entries(attrs).forEach(([k, v]) => {
+    if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'className') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v);
+  });
+  children.forEach(c => { if (c != null) el.append(typeof c === 'string' ? document.createTextNode(c) : c); });
+  return el;
+}
 
-            <div class="setting-group">
-                <label class="setting-label">听觉音量: <span id="volume-value">80</span>%</label>
-                <div class="volume-row">
-                    <input type="range" min="0" max="100" step="10" value="80" class="range-input" id="volume-input">
-                </div>
-                <button class="btn btn-test" id="test-audio-btn">测试字母声音</button>
-                <p class="setting-desc" id="test-feedback" style="text-align: center; margin-top: 5px;"></p>
-            </div>
+function saveHistory(result) {
+  history.unshift({ ...result, game: currentGame, date: new Date().toLocaleDateString('zh-CN'), time: new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' }) });
+  if (history.length > 50) history = history.slice(0, 50);
+  localStorage.setItem('brain-history', JSON.stringify(history));
+  render();
+}
 
-            <div class="rule-box">
-                <h3>训练规则</h3>
-                <p>1. 当当前刺激与<strong>往前数第N个</strong>刺激一致时，按下对应按键</p>
-                <p>2. 单任务：视觉位置匹配按 <strong>F键</strong> / 点击左侧卡片</p>
-                <p>3. 双任务：视觉匹配按 <strong>F键</strong>，听觉字母匹配按 <strong>J键</strong></p>
-                <p>4. 前N个刺激为记忆期，无需按键</p>
-                <p>5. 全程专注，正确率优先于速度</p>
-            </div>
+// ═══════════ Render ═══════════
+function render(forceGame) {
+  if (forceGame) currentGame = forceGame;
+  sessionActive = false;
+  app.innerHTML = '';
 
-            <button class="btn btn-primary" id="start-btn">开始训练</button>
-        </div>
+  const header = h('div', { className: 'header' },
+    h('div', { className: 'header-icon', text: '🧠' }),
+    h('h1', {}, '认知训练中心'),
+    h('p', {}, `${GAMES[currentGame].icon} ${GAMES[currentGame].name} · ${GAMES[currentGame].desc}`),
+  );
 
-        <!-- 倒计时界面 -->
-        <div id="countdown-screen" class="screen">
-            <h1>准备开始</h1>
-            <div class="countdown" id="countdown-num">3</div>
-            <p class="subtitle">专注训练，保持呼吸平稳</p>
-        </div>
+  const tabs = h('div', { className: 'tabs' });
+  Object.entries(GAMES).forEach(([id, g]) => {
+    tabs.appendChild(h('button', {
+      className: `tab${id === currentGame ? ' active' : ''}`,
+      text: `${g.icon} ${g.name}`,
+      onclick: () => render(id),
+    }));
+  });
 
-        <!-- 训练界面 -->
-        <div id="training-screen" class="screen">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            <div class="feedback" id="feedback"></div>
-            <div class="grid-container" id="grid">
-                <div class="grid-cell" data-index="0"></div>
-                <div class="grid-cell" data-index="1"></div>
-                <div class="grid-cell" data-index="2"></div>
-                <div class="grid-cell" data-index="3"></div>
-                <div class="grid-cell" data-index="4"></div>
-                <div class="grid-cell" data-index="5"></div>
-                <div class="grid-cell" data-index="6"></div>
-                <div class="grid-cell" data-index="7"></div>
-                <div class="grid-cell" data-index="8"></div>
-            </div>
-            <div class="key-hint" id="key-hint">
-                <div class="key-card" id="key-f">
-                    <div class="key-code">F</div>
-                    <div class="key-desc">视觉位置匹配</div>
-                </div>
-                <div class="key-card" id="key-j">
-                    <div class="key-code">J</div>
-                    <div class="key-desc">听觉字母匹配</div>
-                </div>
-            </div>
-        </div>
+  const screen = h('div', { className: 'screen active' });
+  const renderGame = gameRenderers[currentGame];
+  renderGame(screen);
 
-        <!-- 结果界面 -->
-        <div id="result-screen" class="screen">
-            <h1>训练完成</h1>
-            <div class="result-card">
-                <div class="result-row">
-                    <span class="result-label">难度等级</span>
-                    <span class="result-value" id="result-n">N=2</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">训练模式</span>
-                    <span class="result-value" id="result-mode">双任务</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">有效试次</span>
-                    <span class="result-value" id="result-total">0</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">正确判断</span>
-                    <span class="result-value" id="result-correct">0</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">正确率</span>
-                    <span class="result-value" id="result-accuracy">0%</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">命中数</span>
-                    <span class="result-value" id="result-hit">0</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">漏报数</span>
-                    <span class="result-value" id="result-miss">0</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">误报数</span>
-                    <span class="result-value" id="result-false">0</span>
-                </div>
-            </div>
-            <p class="result-comment" id="result-comment"></p>
-            <button class="btn btn-primary" id="restart-btn">重新训练</button>
-            <button class="btn btn-secondary" id="setting-btn">修改设置</button>
-        </div>
-    </div>
+  // History
+  const histSection = h('div', { className: 'history' });
+  const gameHistory = history.filter(e => e.game === currentGame).slice(0, 5);
+  if (gameHistory.length) {
+    histSection.appendChild(h('h3', {}, `📊 ${GAMES[currentGame].name} · 最近记录`));
+    const colLabels = {
+      nback: ['日期','N值','轮次','命中','漏报','误报'],
+      pvt: ['日期','次数','平均RT','最快','漏掉'],
+      gng: ['日期','Go数','命中','误报','漏报'],
+      vs: ['日期','大小','轮次','正确数'],
+    };
+    gameHistory.forEach(entry => {
+      const vals = {
+        nback: [entry.date, entry.n, entry.trials, entry.hits, entry.misses, entry.falseAlarms],
+        pvt: [entry.date, entry.count, entry.avgRt+'ms', entry.minRt+'ms', entry.lapses],
+        gng: [entry.date, entry.goCount, entry.hits, entry.falseAlarms, entry.misses],
+        vs: [entry.date, entry.gridSize, entry.rounds, entry.correct],
+      }[currentGame];
+      histSection.appendChild(h('div', { className: 'history-card' },
+        h('span', { className: 'history-date', text: `${entry.date} ${entry.time}` }),
+        h('span', { className: 'history-score', text: vals.slice(2).join(' · ') }),
+      ));
+    });
+  }
 
-    <script>
-        // 全局配置
-        const config = {
-            n: 1,
-            mode: 'single',
-            duration: 30,
-            interval: 3000,
-            showTime: 500,
-            volume: 0.8,
-            letters: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'L']
-        };
+  app.append(header, tabs, screen, histSection);
+}
 
-        // 音频缓存对象
-        const audioCache = {};
-        // 音频上下文（解决移动端音频挂起问题）
-        let audioContext = null;
+// ═══════════ N-BACK ═══════════
+const nbackRender = renderNBack();
+function renderNBack() {
+  let state = {
+    n: 2, trials: 20, sequence: [], idx: 0,
+    hits: 0, misses: 0, falseAlarms: 0, timer: null,
+    positions: [{r:0,c:0},{r:0,c:1},{r:0,c:2},{r:1,c:0},{r:1,c:1},{r:1,c:2},{r:2,c:0},{r:2,c:1},{r:2,c:2}],
+  };
 
-        // 训练状态
-        let state = {
-            visualSequence: [],
-            audioSequence: [],
-            currentIndex: 0,
-            totalTrials: 0,
-            correct: 0,
-            hit: 0,
-            miss: 0,
-            falseAlarm: 0,
-            visualPressed: false,
-            audioPressed: false,
-            timer: null,
-            isTraining: false
-        };
+  function renderSettings(parent) {
+    parent.innerHTML = '';
+    parent.append(
+      h('div', { className: 'settings-section' },
+        h('label', { className: 'settings-label', text: 'N 值' }),
+        h('p', { className: 'settings-desc', text: 'N 越大越难。建议从 2-Back 开始，熟练后尝试 3-Back' }),
+        h('div', { className: 'option-row' },
+          ...[1,2,3,4].map(n => h('button', {
+            className: `option${n === state.n ? ' active' : ''}`,
+            text: `${n}-Back`,
+            onclick() { state.n = n; renderSettings(parent); },
+          })),
+        ),
+      ),
+      h('div', { className: 'settings-section' },
+        h('label', { className: 'settings-label', text: '训练轮数' }),
+        h('div', { className: 'option-row' },
+          ...[10,15,20,25].map(t => h('button', {
+            className: `option${t === state.trials ? ' active' : ''}`,
+            text: `${t} 轮`,
+            onclick() { state.trials = t; renderSettings(parent); },
+          })),
+        ),
+      ),
+      h('div', { className: 'rule-box' },
+        h('h3', {}, '📋 规则'),
+        h('p', {}, `方块在 3×3 网格中依次亮起。如果当前方块位置与 N 步前相同（位置匹配），按 Go 或空格键。`),
+      ),
+      h('button', { className: 'btn btn-primary', text: '🚀 开始训练', onclick() { startGame(parent); } }),
+    );
+  }
 
-        // DOM元素
-        const screens = {
-            setting: document.getElementById('setting-screen'),
-            countdown: document.getElementById('countdown-screen'),
-            training: document.getElementById('training-screen'),
-            result: document.getElementById('result-screen')
-        };
+  function startGame(parent) {
+    sessionActive = true; state.idx = 0; state.hits = 0; state.misses = 0; state.falseAlarms = 0;
+    state.sequence = Array.from({ length: state.trials + state.n }, () => Math.floor(Math.random() * 9));
+    renderGameScreen(parent);
+    showStimulus();
+  }
 
-        const elements = {
-            nOptions: document.querySelectorAll('#n-options .option-btn'),
-            modeOptions: document.querySelectorAll('#mode-options .option-btn'),
-            durationInput: document.getElementById('duration-input'),
-            durationValue: document.getElementById('duration-value'),
-            intervalInput: document.getElementById('interval-input'),
-            intervalValue: document.getElementById('interval-value'),
-            volumeInput: document.getElementById('volume-input'),
-            volumeValue: document.getElementById('volume-value'),
-            testAudioBtn: document.getElementById('test-audio-btn'),
-            testFeedback: document.getElementById('test-feedback'),
-            startBtn: document.getElementById('start-btn'),
-            countdownNum: document.getElementById('countdown-num'),
-            gridCells: document.querySelectorAll('.grid-cell'),
-            feedback: document.getElementById('feedback'),
-            progressFill: document.getElementById('progress-fill'),
-            keyF: document.getElementById('key-f'),
-            keyJ: document.getElementById('key-j'),
-            resultN: document.getElementById('result-n'),
-            resultMode: document.getElementById('result-mode'),
-            resultTotal: document.getElementById('result-total'),
-            resultCorrect: document.getElementById('result-correct'),
-            resultAccuracy: document.getElementById('result-accuracy'),
-            resultHit: document.getElementById('result-hit'),
-            resultMiss: document.getElementById('result-miss'),
-            resultFalse: document.getElementById('result-false'),
-            resultComment: document.getElementById('result-comment'),
-            restartBtn: document.getElementById('restart-btn'),
-            settingBtn: document.getElementById('setting-btn')
-        };
+  let gridEls = [];
+  function renderGameScreen(parent) {
+    parent.innerHTML = '';
+    const stats = h('div', { className: 'stats-row' },
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', text: '0', id: 'nbScore' }), h('div', { className: 'stat-label', text: '得分' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', text: `0/${state.trials}`, id: 'nbRound' }), h('div', { className: 'stat-label', text: '进度' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', text: `${state.n}-Back`, id: 'nbLevel' }), h('div', { className: 'stat-label', text: '难度' })),
+    );
+    const grid = h('div', { className: 'nb-grid' });
+    gridEls = [];
+    for (let i = 0; i < 9; i++) {
+      gridEls.push(h('div', { className: 'nb-cell' }));
+      grid.appendChild(gridEls[i]);
+    }
+    const feedback = h('div', { className: 'feedback' });
+    const progress = h('div', { className: 'progress-bar' }, h('div', { className: 'progress-fill', id: 'nbProgress' }));
+    const actions = h('div', { className: 'action-row' },
+      h('div', { className: 'action-card go-card', onclick() { respond(true); } },
+        h('div', { className: 'action-key', text: 'A' }),
+        h('div', { className: 'action-label', text: '位置匹配 (Go)' }),
+      ),
+      h('div', { className: 'action-card', onclick() { respond(false); } },
+        h('div', { className: 'action-key', text: 'D' }),
+        h('div', { className: 'action-label', text: '不匹配 (No Go)' }),
+      ),
+    );
+    parent.append(stats, grid, feedback, progress, actions);
 
-        // 初始化音频上下文（破解浏览器自动播放限制）
-        function initAudioContext() {
-            if (!audioContext) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (AudioContext) audioContext = new AudioContext();
-            }
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
+    document.addEventListener('keydown', function nbKey(e) {
+      if (currentGame !== 'nback' || !sessionActive || state.idx < state.n) return;
+      if (e.key === 'a' || e.key === 'A' || e.code === 'Space') { e.preventDefault(); respond(true); }
+      if (e.key === 'd' || e.key === 'D') { e.preventDefault(); respond(false); }
+    });
+  }
+
+  function showStimulus() {
+    if (state.idx >= state.sequence.length) {
+      const totalHits = state.hits + state.misses;
+      const score = totalHits ? Math.round(state.hits / totalHits * 100) : 0;
+      saveHistory({ n: state.n, trials: state.trials, hits: state.hits, misses: state.misses, falseAlarms: state.falseAlarms, score });
+      render();
+      return;
+    }
+    gridEls.forEach(c => c.classList.remove('active'));
+    gridEls[state.sequence[state.idx]].classList.add('active');
+    const score = Math.max(0, state.hits * 5 - state.falseAlarms * 3);
+    document.getElementById('nbScore').textContent = score;
+    document.getElementById('nbRound').textContent = `${Math.max(0, state.idx - state.n + 1)}/${state.trials}`;
+    document.getElementById('nbProgress').style.width = `${Math.min(100, (state.idx - state.n + 1) / state.trials * 100)}%`;
+
+    state.timer = setTimeout(() => {
+      gridEls.forEach(c => c.classList.remove('active'));
+      state.timer = setTimeout(() => {
+        if (state.idx >= state.n && !state.respondedThis) state.misses++;
+        state.respondedThis = false;
+        state.idx++;
+        showStimulus();
+      }, 1500);
+    }, 800);
+  }
+
+  function respond(isMatch) {
+    if (!sessionActive || state.idx < state.n || state.respondedThis) return;
+    clearTimeout(state.timer);
+    state.respondedThis = true;
+    const actual = state.idx >= state.n && state.sequence[state.idx] === state.sequence[state.idx - state.n];
+    const fb = document.querySelector('.feedback');
+    if (actual && isMatch) { state.hits++; fb.textContent = '✓ 正确！'; fb.className = 'feedback correct'; }
+    else if (!actual && !isMatch) { fb.textContent = '✓ 正确！'; fb.className = 'feedback correct'; }
+    else if (actual && !isMatch) { state.misses++; fb.textContent = '漏掉了 😟'; fb.className = 'feedback wrong'; }
+    else { state.falseAlarms++; fb.textContent = '误报 ✗'; fb.className = 'feedback wrong'; }
+    state.idx++;
+    showStimulus();
+  }
+
+  return (parent) => renderSettings(parent);
+}
+
+// ═══════════ PVT ═══════════
+function renderPVT(parent) {
+  let state = { count: 0, rts: [], lapses: 0, maxTrials: 20, trialStart: 0, timer: null };
+  parent.innerHTML = '';
+
+  parent.append(
+    h('div', { className: 'settings-section' },
+      h('label', { className: 'settings-label', text: '训练次数' }),
+      h('div', { className: 'option-row' },
+        ...[10, 15, 20, 30].map(t => h('button', {
+          className: `option${t === state.maxTrials ? ' active' : ''}`,
+          text: `${t} 次`, onclick() { state.maxTrials = t; renderPVT(parent); },
+        })),
+      ),
+    ),
+    h('div', { className: 'rule-box' },
+      h('h3', {}, '📋 规则'),
+      h('p', {}, '屏幕显示「等待…」，变红后尽快点击屏幕任意位置或按空格键。测量你的反应时间。'),
+    ),
+    h('div', { className: 'game-area', id: 'pvtGame' }),
+    h('button', { className: 'btn btn-primary', text: '⚡ 开始训练', onclick() { startPVT(parent); } }),
+  );
+
+  function startPVT(parent) {
+    sessionActive = true; state.count = 0; state.rts = []; state.lapses = 0;
+    parent.innerHTML = '';
+    const stats = h('div', { className: 'stats-row' },
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'pvtAvg', text: '--' }), h('div', { className: 'stat-label', text: '平均 ms' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'pvtBest', text: '--' }), h('div', { className: 'stat-label', text: '最快 ms' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'pvtCnt', text: '0/20' }), h('div', { className: 'stat-label', text: '次数' })),
+    );
+    const stim = h('div', { className: 'pvt-stim', text: '等待…', id: 'pvtStim' });
+    const msg = h('div', { className: 'feedback' });
+
+    stim.addEventListener('click', () => handlePVT());
+    document.addEventListener('keydown', e => { if (e.code === 'Space' && sessionActive) { e.preventDefault(); handlePVT(); } });
+
+    function handlePVT() {
+      if (state.trialStart === 0) return;
+      clearTimeout(state.timer);
+      const rt = Math.round(performance.now() - state.trialStart);
+      state.rts.push(rt);
+      state.trialStart = 0;
+      stim.style.background = '#f0f3f5'; stim.textContent = `${rt} ms`;
+      document.getElementById('pvtAvg').textContent = Math.round(state.rts.reduce((a,b)=>a+b)/state.rts.length);
+      document.getElementById('pvtBest').textContent = Math.min(...state.rts);
+      setTimeout(nextPVT, 800);
+    }
+
+    function nextPVT() {
+      if (state.count >= state.maxTrials) {
+        const avg = Math.round(state.rts.reduce((a,b)=>a+b,0)/state.rts.length);
+        saveHistory({ count: state.count, avgRt: avg, minRt: Math.min(...state.rts), maxRt: Math.max(...state.rts), lapses: state.lapses });
+        render(); return;
+      }
+      state.count++; document.getElementById('pvtCnt').textContent = `${state.count}/${state.maxTrials}`;
+      stim.style.background = '#f0f3f5'; stim.textContent = '等待…'; msg.textContent = '';
+      const delay = 2000 + Math.random() * 4000;
+      state.timer = setTimeout(() => {
+        stim.style.background = '#ef8f5a'; stim.textContent = '快按！';
+        state.trialStart = performance.now();
+        state.timer = setTimeout(() => { state.lapses++; stim.style.background = '#f0f3f5'; stim.textContent = '太慢'; state.trialStart = 0; setTimeout(nextPVT, 600); }, 3000);
+      }, delay);
+    }
+
+    parent.append(stats, stim, msg);
+    setTimeout(nextPVT, 1000);
+  }
+}
+
+// ═══════════ GO / NO-GO ═══════════
+function renderGNG(parent) {
+  let state = { goCount: 0, hits: 0, falseAlarms: 0, misses: 0, total: 0, maxTrials: 30, timer: null, isGo: false, responded: false };
+  parent.innerHTML = '';
+
+  parent.append(
+    h('div', { className: 'settings-section' },
+      h('label', { className: 'settings-label', text: '训练次数' }),
+      h('div', { className: 'option-row' },
+        ...[20, 30, 40].map(t => h('button', {
+          className: `option${t === state.maxTrials ? ' active' : ''}`,
+          text: `${t} 轮`, onclick() { state.maxTrials = t; renderGNG(parent); },
+        })),
+      ),
+    ),
+    h('div', { className: 'rule-box' },
+      h('h3', {}, '📋 规则'),
+      h('p', {}, '看到 🟢 绿色（Go 信号）按 Go 或空格；看到 🔴 红色（No-Go 信号）不要按。训练你的抑制控制能力。'),
+    ),
+    h('div', { className: 'game-area', id: 'gngGame' }),
+    h('button', { className: 'btn btn-primary', text: '🎯 开始训练', onclick() { startGNG(parent); } }),
+  );
+
+  function startGNG(parent) {
+    sessionActive = true; state.goCount = 0; state.hits = 0; state.falseAlarms = 0; state.misses = 0; state.total = 0;
+    parent.innerHTML = '';
+    const stats = h('div', { className: 'stats-row' },
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'gngScore', text: '0' }), h('div', { className: 'stat-label', text: '得分' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'gngAcc', text: '--%' }), h('div', { className: 'stat-label', text: '命中率' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'gngCnt', text: '0/30' }), h('div', { className: 'stat-label', text: '进度' })),
+    );
+    const stim = h('div', { className: 'gng-stim', id: 'gngStim' });
+    const msg = h('div', { className: 'feedback' });
+    const actions = h('div', { className: 'action-row' },
+      h('div', { className: 'action-card go-card', onclick() { handleGNG(true); } },
+        h('div', { className: 'action-key', text: 'GO' }),
+        h('div', { className: 'action-label', text: '按 (空格)' }),
+      ),
+      h('div', { className: 'action-card nogo-card', onclick() { handleGNG(false); } },
+        h('div', { className: 'action-key', text: 'NO' }),
+        h('div', { className: 'action-label', text: '不按 (N)' }),
+      ),
+    );
+    parent.append(stats, stim, msg, actions);
+
+    document.addEventListener('keydown', function gngKey(e) {
+      if (currentGame !== 'gng' || !sessionActive) return;
+      if (e.code === 'Space') { e.preventDefault(); handleGNG(true); }
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); handleGNG(false); }
+    });
+
+    function handleGNG(pressGo) {
+      if (!sessionActive || state.responded) return;
+      clearTimeout(state.timer); state.responded = true;
+      if (state.isGo && pressGo) { state.hits++; msg.textContent = '✓'; msg.className = 'feedback correct'; }
+      else if (!state.isGo && !pressGo) { msg.textContent = '✓'; msg.className = 'feedback correct'; }
+      else if (state.isGo && !pressGo) { state.misses++; msg.textContent = '漏掉 ✗'; msg.className = 'feedback wrong'; }
+      else { state.falseAlarms++; msg.textContent = '误报 ✗'; msg.className = 'feedback wrong'; }
+      document.getElementById('gngScore').textContent = Math.max(0, state.hits*3 - state.falseAlarms*2 - state.misses);
+      document.getElementById('gngAcc').textContent = state.goCount ? Math.round(state.hits/state.goCount*100) + '%' : '--%';
+      setTimeout(nextGNG, 400);
+    }
+
+    function nextGNG() {
+      if (state.total >= state.maxTrials) {
+        saveHistory({ goCount: state.goCount, hits: state.hits, falseAlarms: state.falseAlarms, misses: state.misses, score: Math.max(0, state.hits*3-state.falseAlarms*2-state.misses) });
+        render(); return;
+      }
+      state.total++; state.responded = false;
+      state.isGo = Math.random() < 0.7;
+      if (state.isGo) state.goCount++;
+      stim.className = `gng-stim ${state.isGo ? 'go' : 'nogo'}`;
+      document.getElementById('gngCnt').textContent = `${state.total}/${state.maxTrials}`;
+      state.timer = setTimeout(() => {
+        if (!state.responded && state.isGo) state.misses++;
+        state.responded = true;
+        nextGNG();
+      }, 1000);
+    }
+
+    setTimeout(nextGNG, 500);
+  }
+}
+
+// ═══════════ VISUAL SPAN ═══════════
+function renderVS(parent) {
+  let state = { gridSize: 4, rounds: 8, round: 0, correct: 0, pattern: [], picks: [], maxItems: 3 };
+  parent.innerHTML = '';
+
+  parent.append(
+    h('div', { className: 'settings-section' },
+      h('label', { className: 'settings-label', text: '网格大小' }),
+      h('div', { className: 'option-row' },
+        ...[3,4,5].map(s => h('button', {
+          className: `option${s === state.gridSize ? ' active' : ''}`,
+          text: `${s}×${s}`, onclick() { state.gridSize = s; renderVS(parent); },
+        })),
+      ),
+    ),
+    h('div', { className: 'rule-box' },
+      h('h3', {}, '📋 规则'),
+      h('p', {}, '记住亮色方块的位置，消失后点选它们。回合越后，方块越多。训练视觉工作记忆。'),
+    ),
+    h('div', { className: 'game-area', id: 'vsGame' }),
+    h('button', { className: 'btn btn-primary', text: '🧩 开始训练', onclick() { startVS(parent); } }),
+  );
+
+  function startVS(parent) {
+    sessionActive = true; state.round = 0; state.correct = 0;
+    parent.innerHTML = '';
+    const stats = h('div', { className: 'stats-row' },
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'vsScore', text: '0' }), h('div', { className: 'stat-label', text: '得分' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'vsRound', text: '0/8' }), h('div', { className: 'stat-label', text: '轮次' })),
+      h('div', { className: 'stat-card' }, h('div', { className: 'stat-val', id: 'vsAcc', text: '--%' }), h('div', { className: 'stat-label', text: '正确率' })),
+    );
+    const grid = h('div', { className: 'vs-grid', id: 'vsGrid' });
+    grid.style.gridTemplateColumns = `repeat(${state.gridSize}, 42px)`;
+    grid.style.gridTemplateRows = `repeat(${state.gridSize}, 42px)`;
+    for (let i = 0; i < state.gridSize * state.gridSize; i++) {
+      const cell = h('div', { className: 'vs-cell', 'data-idx': i });
+      cell.addEventListener('click', () => {
+        if (!cell.classList.contains('show') && cell.classList.contains('pickable')) {
+          cell.classList.toggle('picked');
+          if (cell.classList.contains('picked')) state.picks.push(i);
+          else state.picks = state.picks.filter(p => p !== i);
         }
+      });
+      grid.appendChild(cell);
+    }
+    const msg = h('div', { className: 'feedback' });
+    const btn = h('button', { className: 'btn btn-primary', text: '确认选择', onclick: checkVS, id: 'vsSubmit' });
+    btn.style.display = 'none';
+    parent.append(stats, grid, msg, btn);
 
-        // 预加载音频（国内稳定有道源，解决之前的链接解析失败问题）
-        function preloadAudio() {
-            config.letters.forEach(letter => {
-                if (!audioCache[letter]) {
-                    // 国内稳定的有道词典美式发音源，无访问限制
-                    const audioUrl = `https://dict.youdao.com/dictvoice?audio=${letter.toLowerCase()}&type=2`;
-                    const audio = new Audio(audioUrl);
-                    audio.volume = config.volume;
-                    audio.preload = 'auto';
-                    audio.load();
-                    audioCache[letter] = audio;
-                }
-            });
+    function showRound() {
+      state.picks = [];
+      document.querySelectorAll('.vs-cell').forEach(c => { c.classList.remove('show', 'picked', 'pickable'); });
+      state.maxItems = Math.min(3 + Math.floor(state.round / 2), state.gridSize * state.gridSize - 1);
+      state.pattern = [];
+      const all = Array.from({length: state.gridSize * state.gridSize}, (_, i) => i);
+      for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+      state.pattern = all.slice(0, state.maxItems);
+      state.pattern.forEach(i => document.querySelector(`.vs-cell[data-idx='${i}']`)?.classList.add('show'));
+      msg.textContent = '记住！';
+      btn.style.display = 'none';
+
+      setTimeout(() => {
+        document.querySelectorAll('.vs-cell').forEach(c => c.classList.remove('show'));
+        document.querySelectorAll('.vs-cell').forEach(c => c.classList.add('pickable'));
+        msg.textContent = '点选你记住的方块';
+        btn.style.display = 'block';
+      }, state.gridSize >= 5 ? 2500 : 2000);
+    }
+
+    function checkVS() {
+      const correctSet = new Set(state.pattern);
+      const pickSet = new Set(state.picks);
+      let c = 0; correctSet.forEach(i => { if (pickSet.has(i)) c++; });
+      const acc = Math.round(c / state.maxItems * 100);
+      if (acc >= 60) state.correct++;
+      state.round++;
+      const score = state.correct * 10;
+      document.getElementById('vsScore').textContent = score;
+      document.getElementById('vsRound').textContent = `${state.round}/${state.rounds}`;
+      document.getElementById('vsAcc').textContent = Math.round(state.correct / state.round * 100) + '%';
+      msg.textContent = acc >= 60 ? `✓ ${c}/${state.maxItems}` : `✗ ${c}/${state.maxItems}`;
+
+      // Show correct
+      document.querySelectorAll('.vs-cell').forEach(cell => {
+        cell.classList.remove('picked', 'pickable');
+        if (correctSet.has(parseInt(cell.dataset.idx))) cell.classList.add('show');
+      });
+      btn.style.display = 'none';
+
+      setTimeout(() => {
+        if (state.round >= state.rounds) {
+          saveHistory({ gridSize: state.gridSize, rounds: state.rounds, correct: state.correct, score });
+          render(); return;
         }
+        showRound();
+      }, 1200);
+    }
 
-        // 播放字母音频（双保险兜底，在线源失败自动用语音合成）
-        function playLetterAudio(letter) {
-            initAudioContext();
-            if (audioCache[letter]) {
-                const audio = audioCache[letter];
-                audio.currentTime = 0;
-                audio.volume = config.volume;
-                audio.play().catch(err => {
-                    // 在线音频失败，自动切换浏览器语音合成兜底
-                    console.warn('在线音频加载失败，启用语音合成兜底', err);
-                    fallbackSpeak(letter);
-                });
-            } else {
-                fallbackSpeak(letter);
-            }
-        }
+    setTimeout(showRound, 600);
+  }
+}
 
-        // 语音合成兜底方案（无网也能用，100%有声音）
-        function fallbackSpeak(letter) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(letter);
-                utterance.lang = 'en-US';
-                utterance.volume = config.volume;
-                utterance.rate = 1.2;
-                window.speechSynthesis.cancel();
-                window.speechSynthesis.speak(utterance);
-            }
-        }
+// ═══════════ Game Router ═══════════
+const gameRenderers = { nback: renderNBack, pvt: renderPVT, gng: renderGNG, vs: renderVS };
 
-        // 切换界面
-        function switchScreen(screenName) {
-            Object.values(screens).forEach(screen => screen.classList.remove('active'));
-            screens[screenName].classList.add('active');
-        }
+// Keyboard tab switching
+document.addEventListener('keydown', (e) => {
+  if (sessionActive) return;
+  if (e.key === '1') render('nback');
+  if (e.key === '2') render('pvt');
+  if (e.key === '3') render('gng');
+  if (e.key === '4') render('vs');
+});
 
-        // 初始化设置事件
-        function initSettingEvents() {
-            // N值选择
-            elements.nOptions.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    elements.nOptions.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    config.n = parseInt(btn.dataset.n);
-                });
-            });
-
-            // 模式选择
-            elements.modeOptions.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    elements.modeOptions.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    config.mode = btn.dataset.mode;
-                    elements.keyJ.style.display = config.mode === 'dual' ? 'block' : 'none';
-                });
-            });
-
-            // 时长滑块
-            elements.durationInput.addEventListener('input', (e) => {
-                config.duration = parseInt(e.target.value);
-                elements.durationValue.textContent = config.duration;
-            });
-
-            // 间隔滑块
-            elements.intervalInput.addEventListener('input', (e) => {
-                config.interval = parseInt(e.target.value);
-                elements.intervalValue.textContent = config.interval;
-            });
-
-            // 音量滑块
-            elements.volumeInput.addEventListener('input', (e) => {
-                const volume = parseInt(e.target.value);
-                config.volume = volume / 100;
-                elements.volumeValue.textContent = volume;
-                Object.values(audioCache).forEach(audio => {
-                    audio.volume = config.volume;
-                });
-            });
-
-            // 声音测试按钮
-            elements.testAudioBtn.addEventListener('click', testAudio);
-
-            // 开始按钮
-            elements.startBtn.addEventListener('click', () => {
-                initAudioContext();
-                preloadAudio();
-                startCountdown();
-            });
-        }
-
-        // 测试音频功能
-        function testAudio() {
-            initAudioContext();
-            preloadAudio();
-            const randomLetter = config.letters[Math.floor(Math.random() * config.letters.length)];
-            playLetterAudio(randomLetter);
-            elements.testFeedback.textContent = `已播放字母 ${randomLetter}，能听到即声音正常`;
-            setTimeout(() => elements.testFeedback.textContent = '', 3000);
-        }
-
-        // 倒计时
-        function startCountdown() {
-            switchScreen('countdown');
-            let count = 3;
-            elements.countdownNum.textContent = count;
-            const timer = setInterval(() => {
-                count--;
-                elements.countdownNum.textContent = count;
-                if (count === 0) {
-                    clearInterval(timer);
-                    startTraining();
-                }
-            }, 1000);
-        }
-
-        // 生成刺激序列
-        function generateSequence() {
-            const totalTime = config.duration * 1000;
-            const trialTime = config.showTime + config.interval;
-            state.totalTrials = Math.floor(totalTime / trialTime);
-            
-            state.visualSequence = [];
-            state.audioSequence = [];
-            
-            // 视觉序列（九宫格0-8）
-            for (let i = 0; i < state.totalTrials; i++) {
-                let num;
-                if (i >= config.n && Math.random() < 0.25) {
-                    num = state.visualSequence[i - config.n];
-                } else {
-                    num = Math.floor(Math.random() * 9);
-                }
-                state.visualSequence.push(num);
-            }
-
-            // 听觉序列（双任务模式）
-            if (config.mode === 'dual') {
-                for (let i = 0; i < state.totalTrials; i++) {
-                    let letter;
-                    if (i >= config.n && Math.random() < 0.25) {
-                        letter = state.audioSequence[i - config.n];
-                    } else {
-                        letter = config.letters[Math.floor(Math.random() * config.letters.length)];
-                    }
-                    state.audioSequence.push(letter);
-                }
-            }
-        }
-
-        // 高亮格子
-        function highlightCell(index) {
-            elements.gridCells.forEach(cell => cell.classList.remove('highlight'));
-            if (index !== undefined && index >= 0 && index < 9) {
-                elements.gridCells[index].classList.add('highlight');
-            }
-        }
-
-        // 反馈显示
-        function showFeedback(text, isCorrect) {
-            elements.feedback.textContent = text;
-            elements.feedback.className = 'feedback';
-            if (isCorrect !== undefined) {
-                elements.feedback.classList.add(isCorrect ? 'correct' : 'wrong');
-            }
-            setTimeout(() => {
-                elements.feedback.textContent = '';
-                elements.feedback.className = 'feedback';
-            }, 500);
-        }
-
-        // 处理按键响应
-        function handleKeyPress(key) {
-            const i = state.currentIndex;
-            if (i < config.n || !state.isTraining) return;
-
-            // 视觉匹配F键
-            if (key === 'F' && !state.visualPressed) {
-                state.visualPressed = true;
-                const isMatch = state.visualSequence[i] === state.visualSequence[i - config.n];
-                if (isMatch) {
-                    state.correct++;
-                    state.hit++;
-                    showFeedback('正确！', true);
-                } else {
-                    state.falseAlarm++;
-                    showFeedback('误报', false);
-                }
-            }
-
-            // 听觉匹配J键
-            if (key === 'J' && config.mode === 'dual' && !state.audioPressed) {
-                state.audioPressed = true;
-                const isMatch = state.audioSequence[i] === state.audioSequence[i - config.n];
-                if (isMatch) {
-                    state.correct++;
-                    state.hit++;
-                    showFeedback('正确！', true);
-                } else {
-                    state.falseAlarm++;
-                    showFeedback('误报', false);
-                }
-            }
-        }
-
-        // 运行单个试次
-        function runTrial() {
-            const i = state.currentIndex;
-            if (i >= state.totalTrials) {
-                endTraining();
-                return;
-            }
-
-            // 重置按键状态
-            state.visualPressed = false;
-            state.audioPressed = false;
-
-            // 同步呈现视觉+听觉刺激
-            highlightCell(state.visualSequence[i]);
-            if (config.mode === 'dual') {
-                playLetterAudio(state.audioSequence[i]);
-            }
-
-            // 500ms后关闭高亮
-            setTimeout(() => highlightCell(), config.showTime);
-
-            // 检查漏报并进入下一试次
-            setTimeout(() => {
-                if (i >= config.n) {
-                    const visualMatch = state.visualSequence[i] === state.visualSequence[i - config.n];
-                    const audioMatch = config.mode === 'dual' ? state.audioSequence[i] === state.audioSequence[i - config.n] : false;
-                    
-                    let missed = false;
-                    if (visualMatch && !state.visualPressed) {
-                        state.miss++;
-                        missed = true;
-                    }
-                    if (audioMatch && !state.audioPressed) {
-                        state.miss++;
-                        missed = true;
-                    }
-                    if (!visualMatch && !audioMatch && !state.visualPressed && !state.audioPressed) {
-                        state.correct++;
-                    }
-
-                    if (missed) showFeedback('漏报', false);
-                }
-
-                // 更新进度条
-                const progress = ((i + 1) / state.totalTrials) * 100;
-                elements.progressFill.style.width = `${progress}%`;
-
-                // 下一试次
-                state.currentIndex++;
-                state.timer = setTimeout(runTrial, config.interval - config.showTime);
-            }, config.interval);
-        }
-
-        // 开始训练
-        function startTraining() {
-            switchScreen('training');
-            // 重置状态
-            state = {
-                visualSequence: [],
-                audioSequence: [],
-                currentIndex: 0,
-                totalTrials: 0,
-                correct: 0,
-                hit: 0,
-                miss: 0,
-                falseAlarm: 0,
-                visualPressed: false,
-                audioPressed: false,
-                timer: null,
-                isTraining: true
-            };
-
-            // 生成序列
-            generateSequence();
-
-            // 绑定键盘事件
-            document.addEventListener('keydown', (e) => {
-                handleKeyPress(e.key.toUpperCase());
-            });
-
-            // 绑定手机触摸事件
-            elements.keyF.addEventListener('click', () => handleKeyPress('F'));
-            elements.keyJ.addEventListener('click', () => handleKeyPress('J'));
-
-            // 启动训练
-            runTrial();
-        }
-
-        // 结束训练
-        function endTraining() {
-            state.isTraining = false;
-            clearTimeout(state.timer);
-            // 停止所有音频
-            Object.values(audioCache).forEach(audio => {
-                audio.pause();
-                audio.currentTime = 0;
-            });
-            window.speechSynthesis?.cancel();
-            highlightCell();
-
-            // 计算结果
-            const validTrials = state.totalTrials - config.n;
-            const totalJudgements = validTrials * (config.mode === 'dual' ? 2 : 1);
-            const accuracy = totalJudgements > 0 ? Math.round((state.correct / totalJudgements) * 100) : 0;
-
-            // 填充结果
-            elements.resultN.textContent = `N=${config.n}`;
-            elements.resultMode.textContent = config.mode === 'single' ? '单任务(视觉)' : '双任务(视觉+听觉)';
-            elements.resultTotal.textContent = validTrials;
-            elements.resultCorrect.textContent = state.correct;
-            elements.resultAccuracy.textContent = `${accuracy}%`;
-            elements.resultHit.textContent = state.hit;
-            elements.resultMiss.textContent = state.miss;
-            elements.resultFalse.textContent = state.falseAlarm;
-
-            // 正确率样式与评语
-            elements.resultAccuracy.className = 'result-value';
-            if (accuracy >= 90) {
-                elements.resultAccuracy.classList.add('accuracy-high');
-                elements.resultComment.textContent = '太棒了！你的正确率非常优秀，可以尝试提升N值挑战更高难度。';
-            } else if (accuracy >= 80) {
-                elements.resultAccuracy.classList.add('accuracy-medium');
-                elements.resultComment.textContent = '做得不错！继续保持训练，稳定正确率在85%以上再进阶会有更好的效果。';
-            } else {
-                elements.resultAccuracy.classList.add('accuracy-low');
-                elements.resultComment.textContent = '继续加油！建议降低N值，先从简单的难度开始，专注提升正确率。';
-            }
-
-            switchScreen('result');
-        }
-
-        // 结果页面事件
-        function initResultEvents() {
-            elements.restartBtn.addEventListener('click', () => {
-                initAudioContext();
-                preloadAudio();
-                startCountdown();
-            });
-            elements.settingBtn.addEventListener('click', () => switchScreen('setting'));
-        }
-
-        // 页面加载完成初始化
-        window.addEventListener('DOMContentLoaded', () => {
-            initSettingEvents();
-            initResultEvents();
-            preloadAudio();
-            // 默认隐藏J键（单任务模式）
-            elements.keyJ.style.display = 'none';
-            // 页面任意点击解锁音频
-            document.body.addEventListener('click', initAudioContext, { once: true });
-        });
-    </script>
+render();
+</script>
 </body>
 </html>
